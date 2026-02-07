@@ -82,13 +82,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     background:#e53935;color:#fff;border:none;border-radius:8px;
   }
   #mobile-bar #mbplay.paused{background:#fff;color:#e53935;border:2px solid #e53935}
-  /* Phase box in mobile bar */
-  #mobile-bar .phase-box{margin:0;padding:8px 12px}
-  #mobile-bar .phase-box .name{font-size:13px}
-  #mobile-bar .phase-box .desc{font-size:9px}
-  /* Phase slider */
+  /* Phase box in mobile bar — full width, larger text */
+  #mobile-bar .phase-box{margin:0;padding:10px 14px}
+  #mobile-bar .phase-box .name{font-size:16px}
+  #mobile-bar .phase-box .desc{font-size:12px;line-height:1.4}
+  /* Phase slider — no percentage label, just the range */
   #mobile-bar .ctrl{margin:0}
-  #mobile-bar .ctrl label{font-size:10px}
+  #mobile-bar .ctrl label{display:none}
 
   /* Drawer overlay */
   #drawer-overlay{

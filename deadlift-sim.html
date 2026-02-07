@@ -82,11 +82,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     background:#e53935;color:#fff;border:none;border-radius:8px;
   }
   #mobile-bar #mbplay.paused{background:#fff;color:#e53935;border:2px solid #e53935}
-  /* Phase name label */
-  #mobile-bar .phase-label{
-    text-align:center;font-size:12px;font-weight:700;color:#1565c0;
-    margin:-2px 0;
-  }
+  /* Phase box in mobile bar */
+  #mobile-bar .phase-box{margin:0;padding:8px 12px}
+  #mobile-bar .phase-box .name{font-size:13px}
+  #mobile-bar .phase-box .desc{font-size:9px}
   /* Phase slider */
   #mobile-bar .ctrl{margin:0}
   #mobile-bar .ctrl label{font-size:10px}
@@ -210,7 +209,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <div id="mobile-bar">
   <div class="drag-handle" id="bar-handle"></div>
   <button class="btn" id="mbplay">&#9654; Play</button>
-  <div class="phase-label" id="mphase-label">Setup</div>
+  <div class="phase-box" id="mphase-box"><div class="name" id="mphase-n">Setup</div><div class="desc" id="mphase-d">Posizionamento iniziale - barra su midfoot</div></div>
   <div class="ctrl"><label><span id="mvp">0%</span></label><input type="range" id="msp" min="0" max="100" value="0" step="0.5"></div>
 </div>
 
@@ -1067,8 +1066,9 @@ function updateUI(t) {
   document.getElementById('dw').textContent = ST.wt;
 
   // ===== MOBILE UI SYNC =====
-  // Phase label in mobile bar
-  document.getElementById('mphase-label').textContent = ph.n;
+  // Phase box in mobile bar
+  document.getElementById('mphase-n').textContent = ph.n;
+  document.getElementById('mphase-d').textContent = ph.d;
   // Play button state
   const mbp = document.getElementById('mbplay');
   if (ST.play) {

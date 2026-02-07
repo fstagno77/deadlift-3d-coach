@@ -57,7 +57,61 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #legend{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.9);border:1px solid #eee;border-radius:6px;padding:10px;font-size:10px}
 #legend div{display:flex;align-items:center;gap:6px;margin-bottom:3px}
 #legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-@media(max-width:800px){#sidebar{display:none}}
+/* === MOBILE: hide by default on desktop === */
+#mobile-bar,#mobile-drawer,#drawer-overlay,#legend-toggle{display:none}
+
+@media(max-width:800px){
+  #sidebar{display:none}
+  #bottom{display:none}
+
+  /* Mobile bottom bar — always visible */
+  #mobile-bar{
+    display:flex;position:fixed;bottom:0;left:0;right:0;z-index:100;
+    background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);
+    border-top:1px solid #e0e0e0;padding:8px 12px;
+    flex-direction:column;gap:6px;
+  }
+  #mobile-bar .mob-row{display:flex;align-items:center;gap:8px}
+  #mobile-bar .btn{min-height:40px;font-size:12px}
+  #mobile-bar .prog-bg{flex:1;width:auto}
+
+  /* Drawer overlay */
+  #drawer-overlay{
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,0.4);z-index:199;
+  }
+  #drawer-overlay.open{display:block}
+
+  /* Bottom sheet drawer */
+  #mobile-drawer{
+    display:block;position:fixed;bottom:0;left:0;right:0;z-index:200;
+    background:#fff;border-radius:16px 16px 0 0;
+    transform:translateY(100%);transition:transform 0.3s ease;
+    max-height:80vh;overflow-y:auto;padding:16px 16px 24px;
+    box-shadow:0 -4px 20px rgba(0,0,0,0.15);
+  }
+  #mobile-drawer.open{transform:translateY(0)}
+  #drawer-handle{width:40px;height:4px;background:#ccc;border-radius:2px;margin:0 auto 14px}
+
+  /* Legend floating toggle */
+  #legend-toggle{
+    display:flex;position:absolute;top:8px;left:8px;z-index:50;
+    width:34px;height:34px;border-radius:50%;
+    background:rgba(255,255,255,0.92);border:1px solid #e0e0e0;
+    align-items:center;justify-content:center;font-size:15px;cursor:pointer;
+  }
+  #legend{display:none;font-size:9px;padding:8px;top:48px;left:8px}
+  #legend.show{display:block}
+
+  /* View buttons smaller */
+  #viewbtns{top:8px;right:8px}
+  #viewbtns .btn{padding:5px 8px;font-size:9px;min-width:auto;min-height:auto}
+
+  /* Touch-friendly sliders */
+  input[type=range]::-webkit-slider-thumb{width:22px;height:22px}
+  #mobile-drawer .btn{min-height:40px;font-size:12px}
+  #mobile-drawer .section{margin-bottom:12px}
+}
 </style>
 </head>
 <body>
@@ -111,6 +165,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   </div>
 
   <div id="view">
+    <button id="legend-toggle" title="Legenda">&#128065;</button>
     <div id="legend">
       <div><span class="dot" style="background:#43a047"></span> Linea colonna (neutrale)</div>
       <div><span class="dot" style="background:#1e88e5"></span> Proiezione scapole sulla barra</div>
@@ -129,6 +184,67 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       <div class="prog-bg"><div class="prog-fill" id="pf"></div></div>
       <div class="prog-lbl" id="pl">Usa lo slider o premi Play</div>
     </div>
+  </div>
+</div>
+
+<!-- ===== MOBILE: Bottom Bar (always visible) ===== -->
+<div id="mobile-bar">
+  <div class="mob-row">
+    <button class="btn" id="mbplay" style="min-width:70px">Play</button>
+    <div class="prog-bg" style="flex:1"><div class="prog-fill" id="mpf"></div></div>
+    <button class="btn" id="open-drawer" style="min-width:auto;padding:8px 14px;font-size:16px">&#9881;</button>
+  </div>
+  <div class="ctrl" style="margin:0"><label>Fase <span class="val" id="mvp">0%</span></label><input type="range" id="msp" min="0" max="100" value="0" step="0.5"></div>
+</div>
+
+<!-- ===== MOBILE: Drawer Overlay ===== -->
+<div id="drawer-overlay"></div>
+
+<!-- ===== MOBILE: Bottom Sheet Drawer ===== -->
+<div id="mobile-drawer">
+  <div id="drawer-handle"></div>
+
+  <div class="section">
+    <h3 class="red">Comandi</h3>
+    <div class="btns" style="margin-bottom:10px">
+      <button class="btn" id="mbreset">Reset</button>
+      <button class="btn on" id="mbc">Conventional</button>
+      <button class="btn" id="mbs">Sumo</button>
+    </div>
+    <div class="weight-disp" style="text-align:center;margin-bottom:8px"><span id="mdw">100</span> <span class="u">KG</span></div>
+  </div>
+
+  <div class="section">
+    <h3 class="red">Parametri</h3>
+    <div class="ctrl"><label>Peso (kg) <span class="val" id="mvw">100</span></label><input type="range" id="msw" min="20" max="300" value="100" step="5"></div>
+    <div class="ctrl"><label>Altezza (cm) <span class="val" id="mvh">180</span></label><input type="range" id="msh" min="150" max="210" value="180" step="1"></div>
+    <div class="ctrl"><label>Femore (%) <span class="val" id="mvf">50</span></label><input type="range" id="msf" min="40" max="60" value="50" step="1"></div>
+    <div class="ctrl"><label>Velocita' <span class="val" id="mvs">1.0x</span></label><input type="range" id="mss" min="0.1" max="3" value="1" step="0.1"></div>
+  </div>
+
+  <div class="section">
+    <h3 class="blue">Coach</h3>
+    <div class="phase-box"><div class="name" id="mpn">Setup</div><div class="desc" id="mpd">Posizionamento iniziale</div></div>
+  </div>
+
+  <div class="section">
+    <h3>Angoli</h3>
+    <div class="angles">
+      <div class="ang" id="mAh"><div class="lbl">Anca</div><div class="num" id="mah">0</div><div class="unit">deg</div></div>
+      <div class="ang" id="mAk"><div class="lbl">Ginocchio</div><div class="num" id="mak">0</div><div class="unit">deg</div></div>
+      <div class="ang" id="mAb"><div class="lbl">Schiena</div><div class="num" id="mab">0</div><div class="unit">deg</div></div>
+      <div class="ang" id="mAs"><div class="lbl">Tibia</div><div class="num" id="mas">0</div><div class="unit">deg</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Muscoli</h3>
+    <div id="mmsc"></div>
+  </div>
+
+  <div class="section">
+    <h3>Cue del Coach</h3>
+    <div id="mtips"></div>
   </div>
 </div>
 
@@ -825,6 +941,10 @@ const muscleNames = ['Glutei', 'Quadricipiti', 'Hamstring', 'Erettori sp.', 'Dor
 document.getElementById('msc').innerHTML = muscleNames.map(n =>
   `<div class="musc"><span class="mname">${n}</span><div class="mbar"><div class="mfill" id="mf-${n}" style="width:0%"></div></div><span class="mpct" id="mv-${n}">0%</span></div>`
 ).join('');
+// Mobile muscle bars
+document.getElementById('mmsc').innerHTML = muscleNames.map(n =>
+  `<div class="musc"><span class="mname">${n}</span><div class="mbar"><div class="mfill" id="mmf-${n}" style="width:0%"></div></div><span class="mpct" id="mmv-${n}">0%</span></div>`
+).join('');
 
 // ============ COACHING CUES (comprehensive) ============
 function getTips(t) {
@@ -917,16 +1037,45 @@ function updateUI(t) {
   });
 
   const tips = getTips(t);
-  document.getElementById('tips').innerHTML = tips.map(x => {
+  const tipsHtml = tips.map(x => {
     const cls = x.c === 'w' ? ' w' : x.c === 'e' ? ' e' : '';
     return `<div class="tip${cls}">${x.t}</div>`;
   }).join('');
+  document.getElementById('tips').innerHTML = tipsHtml;
 
   document.getElementById('pf').style.width = (t * 100) + '%';
   document.getElementById('pl').textContent =
     t < 0.03 && t > 0 ? `Pulling the slack... ${(p.slackTension * 100).toFixed(0)}% tensione` :
     `${(t * 100).toFixed(0)}% del movimento`;
   document.getElementById('dw').textContent = ST.wt;
+
+  // ===== MOBILE UI SYNC =====
+  // Progress bar
+  document.getElementById('mpf').style.width = (t * 100) + '%';
+  // Play button state
+  document.getElementById('mbplay').textContent = ST.play ? 'Pausa' : 'Play';
+  document.getElementById('mbplay').classList.toggle('on', ST.play);
+  // Drawer: weight display
+  document.getElementById('mdw').textContent = ST.wt;
+  // Drawer: coach phase
+  document.getElementById('mpn').textContent = ph.n;
+  document.getElementById('mpd').textContent = ph.d;
+  // Drawer: angles
+  setA('mah', p.hipFlex, 'mAh', 70, 82);
+  setA('mak', p.kneeFlex, 'mAk', 85, 95);
+  setA('mab', p.backAngle, 'mAb', 20, 30);
+  setA('mas', p.shinAngle, 'mAs', 22, 32);
+  // Drawer: muscles
+  muscleNames.forEach(n => {
+    const v = m[n];
+    document.getElementById('mmf-' + n).style.width = v + '%';
+    document.getElementById('mmv-' + n).textContent = v.toFixed(0) + '%';
+  });
+  // Drawer: tips
+  document.getElementById('mtips').innerHTML = tipsHtml;
+  // Drawer: stance buttons
+  document.getElementById('mbc').classList.toggle('on', ST.stance === 'conv');
+  document.getElementById('mbs').classList.toggle('on', ST.stance === 'sumo');
 }
 
 // ============ CAMERA VIEWS ============
@@ -978,6 +1127,73 @@ document.getElementById('breset').onclick = () => {
   document.getElementById('vp').textContent = '0%';
 };
 
+// ============ MOBILE CONTROLS ============
+
+// Legend toggle
+document.getElementById('legend-toggle').onclick = () => {
+  document.getElementById('legend').classList.toggle('show');
+};
+
+// Drawer open/close
+const mDrawer = document.getElementById('mobile-drawer');
+const mOverlay = document.getElementById('drawer-overlay');
+document.getElementById('open-drawer').onclick = () => {
+  mDrawer.classList.add('open');
+  mOverlay.classList.add('open');
+};
+mOverlay.onclick = () => {
+  mDrawer.classList.remove('open');
+  mOverlay.classList.remove('open');
+};
+// Close drawer by tapping handle
+document.getElementById('drawer-handle').onclick = () => {
+  mDrawer.classList.remove('open');
+  mOverlay.classList.remove('open');
+};
+
+// Mobile bar: Play button → proxy to desktop
+document.getElementById('mbplay').onclick = () => document.getElementById('bplay').click();
+
+// Mobile bar: Phase slider → proxy to desktop
+document.getElementById('msp').oninput = e => {
+  document.getElementById('sp').value = e.target.value;
+  document.getElementById('sp').dispatchEvent(new Event('input'));
+  document.getElementById('mvp').textContent = e.target.value + '%';
+};
+
+// Drawer: Reset → proxy to desktop
+document.getElementById('mbreset').onclick = () => {
+  document.getElementById('breset').click();
+  document.getElementById('msp').value = 0;
+  document.getElementById('mvp').textContent = '0%';
+};
+
+// Drawer: Stance buttons → proxy to desktop
+document.getElementById('mbc').onclick = () => document.getElementById('bc').click();
+document.getElementById('mbs').onclick = () => document.getElementById('bs').click();
+
+// Drawer: Parameter sliders → proxy to desktop + sync labels
+document.getElementById('msw').oninput = e => {
+  document.getElementById('sw').value = e.target.value;
+  document.getElementById('sw').dispatchEvent(new Event('input'));
+  document.getElementById('mvw').textContent = e.target.value;
+};
+document.getElementById('msh').oninput = e => {
+  document.getElementById('sh').value = e.target.value;
+  document.getElementById('sh').dispatchEvent(new Event('input'));
+  document.getElementById('mvh').textContent = e.target.value;
+};
+document.getElementById('msf').oninput = e => {
+  document.getElementById('sf').value = e.target.value;
+  document.getElementById('sf').dispatchEvent(new Event('input'));
+  document.getElementById('mvf').textContent = e.target.value;
+};
+document.getElementById('mss').oninput = e => {
+  document.getElementById('ss').value = e.target.value;
+  document.getElementById('ss').dispatchEvent(new Event('input'));
+  document.getElementById('mvs').textContent = (+e.target.value).toFixed(1) + 'x';
+};
+
 // ============ INIT & LOOP ============
 buildStick();
 buildBarbell();
@@ -993,8 +1209,13 @@ let uiTimer = 0;
     ST.t += ST.dir * dt * ST.spd * 0.35;
     if (ST.t >= 1) { ST.t = 1; ST.dir = -1; }
     if (ST.t <= 0) { ST.t = 0; ST.dir = 1; }
-    document.getElementById('sp').value = ST.t * 100;
-    document.getElementById('vp').textContent = (ST.t * 100).toFixed(0) + '%';
+    const pctVal = ST.t * 100;
+    const pctStr = pctVal.toFixed(0) + '%';
+    document.getElementById('sp').value = pctVal;
+    document.getElementById('vp').textContent = pctStr;
+    // Mobile slider sync
+    document.getElementById('msp').value = pctVal;
+    document.getElementById('mvp').textContent = pctStr;
   }
 
   const pose = solve(ST.t);

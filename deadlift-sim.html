@@ -68,12 +68,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   #mobile-bar{
     display:flex;position:fixed;bottom:0;left:0;right:0;z-index:100;
     background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);
-    border-top:1px solid #e0e0e0;padding:8px 12px;
+    border-top:1px solid #e0e0e0;padding:0 12px 10px;
     flex-direction:column;gap:6px;
   }
-  #mobile-bar .mob-row{display:flex;align-items:center;gap:8px}
-  #mobile-bar .btn{min-height:40px;font-size:12px}
-  #mobile-bar .prog-bg{flex:1;width:auto}
+  /* Drag handle at top of mobile-bar to reveal settings */
+  #mobile-bar .drag-handle{
+    width:40px;height:4px;background:#bbb;border-radius:2px;
+    margin:8px auto 4px;cursor:grab;
+  }
+  /* Play button: big, red, full width */
+  #mobile-bar #mbplay{
+    width:100%;min-height:46px;font-size:15px;font-weight:700;
+    background:#e53935;color:#fff;border:none;border-radius:8px;
+  }
+  #mobile-bar #mbplay.paused{background:#fff;color:#e53935;border:2px solid #e53935}
+  /* Phase name label */
+  #mobile-bar .phase-label{
+    text-align:center;font-size:12px;font-weight:700;color:#1565c0;
+    margin:-2px 0;
+  }
+  /* Phase slider */
+  #mobile-bar .ctrl{margin:0}
+  #mobile-bar .ctrl label{font-size:10px}
 
   /* Drawer overlay */
   #drawer-overlay{
@@ -93,7 +109,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   #mobile-drawer.open{transform:translateY(0)}
   #drawer-handle{width:40px;height:4px;background:#ccc;border-radius:2px;margin:0 auto 14px}
 
-  /* Legend floating toggle */
+  /* Legend floating toggle + view buttons in top bar */
   #legend-toggle{
     display:flex;position:absolute;top:8px;left:8px;z-index:50;
     width:34px;height:34px;border-radius:50%;
@@ -103,9 +119,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   #legend{display:none;font-size:9px;padding:8px;top:48px;left:8px}
   #legend.show{display:block}
 
-  /* View buttons smaller */
-  #viewbtns{top:8px;right:8px}
-  #viewbtns .btn{padding:5px 8px;font-size:9px;min-width:auto;min-height:auto}
+  /* View buttons: move to top-left, next to legend toggle */
+  #viewbtns{
+    top:8px;left:50px;right:auto;
+    flex-wrap:nowrap;
+  }
+  #viewbtns .btn{padding:5px 8px;font-size:9px;min-width:auto;min-height:auto;flex:none}
 
   /* Touch-friendly sliders */
   input[type=range]::-webkit-slider-thumb{width:22px;height:22px}
@@ -189,12 +208,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <!-- ===== MOBILE: Bottom Bar (always visible) ===== -->
 <div id="mobile-bar">
-  <div class="mob-row">
-    <button class="btn" id="mbplay" style="min-width:70px">Play</button>
-    <div class="prog-bg" style="flex:1"><div class="prog-fill" id="mpf"></div></div>
-    <button class="btn" id="open-drawer" style="min-width:auto;padding:8px 14px;font-size:16px">&#9881;</button>
-  </div>
-  <div class="ctrl" style="margin:0"><label>Fase <span class="val" id="mvp">0%</span></label><input type="range" id="msp" min="0" max="100" value="0" step="0.5"></div>
+  <div class="drag-handle" id="bar-handle"></div>
+  <button class="btn" id="mbplay">&#9654; Play</button>
+  <div class="phase-label" id="mphase-label">Setup</div>
+  <div class="ctrl"><label><span id="mvp">0%</span></label><input type="range" id="msp" min="0" max="100" value="0" step="0.5"></div>
 </div>
 
 <!-- ===== MOBILE: Drawer Overlay ===== -->
@@ -1050,11 +1067,17 @@ function updateUI(t) {
   document.getElementById('dw').textContent = ST.wt;
 
   // ===== MOBILE UI SYNC =====
-  // Progress bar
-  document.getElementById('mpf').style.width = (t * 100) + '%';
+  // Phase label in mobile bar
+  document.getElementById('mphase-label').textContent = ph.n;
   // Play button state
-  document.getElementById('mbplay').textContent = ST.play ? 'Pausa' : 'Play';
-  document.getElementById('mbplay').classList.toggle('on', ST.play);
+  const mbp = document.getElementById('mbplay');
+  if (ST.play) {
+    mbp.innerHTML = '&#10074;&#10074; Pausa';
+    mbp.classList.remove('paused');
+  } else {
+    mbp.innerHTML = '&#9654; Play';
+    mbp.classList.add('paused');
+  }
   // Drawer: weight display
   document.getElementById('mdw').textContent = ST.wt;
   // Drawer: coach phase
@@ -1137,19 +1160,29 @@ document.getElementById('legend-toggle').onclick = () => {
 // Drawer open/close
 const mDrawer = document.getElementById('mobile-drawer');
 const mOverlay = document.getElementById('drawer-overlay');
-document.getElementById('open-drawer').onclick = () => {
-  mDrawer.classList.add('open');
-  mOverlay.classList.add('open');
-};
-mOverlay.onclick = () => {
-  mDrawer.classList.remove('open');
-  mOverlay.classList.remove('open');
-};
-// Close drawer by tapping handle
-document.getElementById('drawer-handle').onclick = () => {
-  mDrawer.classList.remove('open');
-  mOverlay.classList.remove('open');
-};
+function openDrawer() { mDrawer.classList.add('open'); mOverlay.classList.add('open'); }
+function closeDrawer() { mDrawer.classList.remove('open'); mOverlay.classList.remove('open'); }
+mOverlay.onclick = closeDrawer;
+// Close drawer by tapping its handle
+document.getElementById('drawer-handle').onclick = closeDrawer;
+
+// Drag-handle on mobile-bar: swipe up to open drawer
+(function() {
+  const handle = document.getElementById('bar-handle');
+  let startY = 0, dragging = false;
+  handle.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    dragging = true;
+  }, { passive: true });
+  handle.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dy = startY - e.touches[0].clientY;
+    if (dy > 30) { openDrawer(); dragging = false; }
+  }, { passive: true });
+  handle.addEventListener('touchend', () => { dragging = false; });
+  // Also allow simple tap to open
+  handle.addEventListener('click', openDrawer);
+})();
 
 // Mobile bar: Play button → proxy to desktop
 document.getElementById('mbplay').onclick = () => document.getElementById('bplay').click();

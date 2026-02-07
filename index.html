@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deadlift 3D Coach - Stickman</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f5f5f5;color:#333;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow:hidden}
+canvas{display:block}
+#app{display:flex;height:100vh;width:100vw}
+#sidebar{width:320px;min-width:320px;background:#fff;border-right:1px solid #e0e0e0;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+#view{flex:1;position:relative;background:#fafafa}
+h1{font-size:18px;font-weight:700;color:#e53935;letter-spacing:1px}
+.sub{font-size:11px;color:#999;margin-top:2px}
+.section{background:#fafafa;border:1px solid #eee;border-radius:8px;padding:14px}
+.section h3{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.section h3.red{color:#e53935}
+.section h3.blue{color:#1e88e5}
+.ctrl{margin-bottom:10px}
+.ctrl label{display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px}
+.ctrl .val{color:#e53935;font-weight:700}
+input[type=range]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:#e0e0e0;border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#e53935;border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:8px 12px;border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;text-align:center;flex:1;min-width:60px}
+.btn:hover{border-color:#e53935;color:#e53935}
+.btn.on{background:#e53935;color:#fff;border-color:#e53935}
+.phase-box{background:#e3f2fd;border:1px solid #bbdefb;border-radius:8px;padding:10px;text-align:center}
+.phase-box .name{font-size:14px;font-weight:700;color:#1565c0}
+.phase-box .desc{font-size:10px;color:#64b5f6;margin-top:3px}
+.angles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ang{background:#fff;border:1px solid #eee;border-radius:6px;padding:8px;text-align:center}
+.ang .lbl{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.5px}
+.ang .num{font-size:20px;font-weight:800;color:#43a047}
+.ang .unit{font-size:8px;color:#bbb}
+.ang.warn .num{color:#ff9800}
+.ang.bad .num{color:#e53935}
+.musc{display:flex;align-items:center;margin-bottom:4px}
+.musc .mname{width:90px;font-size:10px;color:#777}
+.musc .mbar{flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden;margin:0 6px}
+.musc .mfill{height:100%;border-radius:3px;background:linear-gradient(90deg,#66bb6a,#ef5350);transition:width .2s}
+.musc .mpct{font-size:9px;color:#aaa;width:30px;text-align:right}
+.tip{padding:8px 10px;margin-bottom:4px;border-radius:5px;font-size:11px;line-height:1.4;border-left:3px solid #66bb6a;background:#f1f8e9}
+.tip.w{border-left-color:#ff9800;background:#fff8e1}
+.tip.e{border-left-color:#e53935;background:#ffebee}
+#bottom{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+#bottom *{pointer-events:auto}
+.prog-bg{width:300px;height:4px;background:#e0e0e0;border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#e53935,#1e88e5);transition:width .1s;border-radius:2px}
+.prog-lbl{font-size:10px;color:#aaa}
+.weight-disp{font-size:28px;font-weight:800;color:#e53935}
+.weight-disp .u{font-size:12px;color:#bbb;font-weight:400}
+#viewbtns{position:absolute;top:12px;right:12px;display:flex;gap:4px}
+#viewbtns .btn{background:#fff;min-width:auto;padding:6px 10px;font-size:10px}
+/* Legend for visual annotations */
+#legend{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.9);border:1px solid #eee;border-radius:6px;padding:10px;font-size:10px}
+#legend div{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+#legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+@media(max-width:800px){#sidebar{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div>
+      <h1>DEADLIFT COACH 3D</h1>
+      <div class="sub">Simulazione biomeccanica - Stickman</div>
+    </div>
+
+    <div class="section">
+      <h3 class="red">Parametri</h3>
+      <div class="ctrl"><label>Peso (kg) <span class="val" id="vw">100</span></label><input type="range" id="sw" min="20" max="300" value="100" step="5"></div>
+      <div class="ctrl"><label>Altezza (cm) <span class="val" id="vh">180</span></label><input type="range" id="sh" min="150" max="210" value="180" step="1"></div>
+      <div class="ctrl"><label>Femore (%) <span class="val" id="vf">50</span></label><input type="range" id="sf" min="40" max="60" value="50" step="1"></div>
+      <div class="ctrl"><label>Velocita' <span class="val" id="vs">1.0x</span></label><input type="range" id="ss" min="0.1" max="3" value="1" step="0.1"></div>
+      <div class="ctrl"><label>Stance</label>
+        <div class="btns"><button class="btn on" id="bc">Conventional</button><button class="btn" id="bs">Sumo</button></div>
+      </div>
+      <div class="btns" style="margin-top:8px">
+        <button class="btn" id="bplay">Play</button>
+        <button class="btn" id="breset">Reset</button>
+      </div>
+      <div class="ctrl" style="margin-top:8px"><label>Fase manuale <span class="val" id="vp">0%</span></label><input type="range" id="sp" min="0" max="100" value="0" step="0.5"></div>
+    </div>
+
+    <div class="section">
+      <h3 class="blue">Coach</h3>
+      <div class="phase-box"><div class="name" id="pn">Setup</div><div class="desc" id="pd">Posizionamento iniziale</div></div>
+    </div>
+
+    <div class="section">
+      <h3>Angoli</h3>
+      <div class="angles">
+        <div class="ang" id="Ah"><div class="lbl">Anca</div><div class="num" id="ah">0</div><div class="unit">deg</div></div>
+        <div class="ang" id="Ak"><div class="lbl">Ginocchio</div><div class="num" id="ak">0</div><div class="unit">deg</div></div>
+        <div class="ang" id="Ab"><div class="lbl">Schiena</div><div class="num" id="ab">0</div><div class="unit">deg</div></div>
+        <div class="ang" id="As"><div class="lbl">Tibia</div><div class="num" id="as">0</div><div class="unit">deg</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Muscoli</h3>
+      <div id="msc"></div>
+    </div>
+
+    <div class="section">
+      <h3>Cue del Coach</h3>
+      <div id="tips"></div>
+    </div>
+  </div>
+
+  <div id="view">
+    <div id="legend">
+      <div><span class="dot" style="background:#43a047"></span> Linea colonna (neutrale)</div>
+      <div><span class="dot" style="background:#1e88e5"></span> Proiezione scapole sulla barra</div>
+      <div><span class="dot" style="background:#ff9800"></span> Linea di gravita' (midfoot)</div>
+      <div><span class="dot" style="background:#e53935"></span> Contatto barra-tibie</div>
+      <div><span class="dot" style="background:#9c27b0"></span> Sguardo (2-3m avanti)</div>
+    </div>
+    <div id="viewbtns">
+      <button class="btn" data-v="side">Laterale</button>
+      <button class="btn" data-v="front">Frontale</button>
+      <button class="btn" data-v="back">Posteriore</button>
+      <button class="btn" data-v="free">Libera</button>
+    </div>
+    <div id="bottom">
+      <div class="weight-disp"><span id="dw">100</span> <span class="u">KG</span></div>
+      <div class="prog-bg"><div class="prog-fill" id="pf"></div></div>
+      <div class="prog-lbl" id="pl">Usa lo slider o premi Play</div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============ UTILS ============
+const DEG = Math.PI / 180;
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const smooth = (x, e0, e1) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+
+// ============ STATE ============
+const ST = { t: 0, play: false, spd: 1, dir: 1, stance: 'conv', wt: 100, H: 1.80, femur: 0.50 };
+
+// ============ THREE.JS SETUP ============
+const viewEl = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+viewEl.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf5f5f5);
+
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+camera.position.set(2.8, 1.2, 2.4);
+
+const orbitCtrl = new OrbitControls(camera, renderer.domElement);
+orbitCtrl.target.set(0, 0.85, 0);
+orbitCtrl.enableDamping = true;
+orbitCtrl.dampingFactor = 0.08;
+orbitCtrl.update();
+
+function resize() {
+  const w = viewEl.clientWidth, h = viewEl.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============ LIGHTS ============
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+sun.position.set(3, 6, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 15;
+sun.shadow.camera.left = -3; sun.shadow.camera.right = 3;
+sun.shadow.camera.top = 3; sun.shadow.camera.bottom = -1;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x88aaff, 0.3).translateX(-3).translateY(3));
+
+// ============ FLOOR ============
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(10, 10),
+  new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.9 })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Platform
+const platMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(2.4, 0.03, 1.2),
+  new THREE.MeshStandardMaterial({ color: 0xbcaaa4, roughness: 0.7 })
+);
+platMesh.position.y = 0.015;
+platMesh.receiveShadow = true;
+scene.add(platMesh);
+
+// Grid
+const grid = new THREE.GridHelper(10, 20, 0xdddddd, 0xeeeeee);
+grid.position.y = 0.001;
+scene.add(grid);
+
+// ============ MATERIALS ============
+const JOINT_R = 0.035;
+const BONE_R = 0.016;
+const HEAD_R_FACTOR = 0.055;
+
+const jointMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.4, metalness: 0.2 });
+const boneMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.5, metalness: 0.1 });
+const headMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4, metalness: 0.15 });
+const barMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.8 });
+const plateMats = {
+  red: new THREE.MeshStandardMaterial({ color: 0xd32f2f, roughness: 0.4, metalness: 0.4 }),
+  blue: new THREE.MeshStandardMaterial({ color: 0x1565c0, roughness: 0.4, metalness: 0.4 }),
+  gray: new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.4, metalness: 0.5 }),
+};
+// Annotation materials
+const scapLineMatObj = new THREE.LineBasicMaterial({ color: 0x1e88e5, transparent: true, opacity: 0.6 });
+const gravLineMatObj = new THREE.LineBasicMaterial({ color: 0xff9800, transparent: true, opacity: 0.5, linewidth: 2 });
+const shinContactMat = new THREE.MeshStandardMaterial({ color: 0xe53935, transparent: true, opacity: 0.6, roughness: 0.5 });
+const gazeLineMat = new THREE.LineBasicMaterial({ color: 0x9c27b0, transparent: true, opacity: 0.4 });
+const footTriMat = new THREE.MeshStandardMaterial({ color: 0xff9800, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+
+// ============ STICKMAN MODEL ============
+const stickGroup = new THREE.Group();
+scene.add(stickGroup);
+
+const jointGeo = new THREE.SphereGeometry(JOINT_R, 12, 8);
+// Bones are created with fixed geometry length; NO runtime scaling
+function makeBoneGeo(len) {
+  return new THREE.CylinderGeometry(BONE_R, BONE_R, len, 8);
+}
+
+function makeJoint() {
+  const m = new THREE.Mesh(jointGeo, jointMat);
+  m.castShadow = true;
+  stickGroup.add(m);
+  return m;
+}
+function makeBoneFixed(len) {
+  const geo = makeBoneGeo(len);
+  const m = new THREE.Mesh(geo, boneMat);
+  m.castShadow = true;
+  m.userData.boneLen = len;
+  stickGroup.add(m);
+  return m;
+}
+
+const J = {};
+const BN = {};
+
+function buildStick() {
+  while (stickGroup.children.length) stickGroup.remove(stickGroup.children[0]);
+
+  const d = getDimensions();
+  const headR = d.headR;
+  J.head = new THREE.Mesh(new THREE.SphereGeometry(headR, 14, 10), headMat);
+  J.head.castShadow = true;
+  stickGroup.add(J.head);
+
+  J.neck = makeJoint();
+  J.shoulderMid = makeJoint();
+  ['L', 'R'].forEach(s => {
+    J['hip' + s] = makeJoint();
+    J['knee' + s] = makeJoint();
+    J['ankle' + s] = makeJoint();
+    J['shoulder' + s] = makeJoint();
+    J['elbow' + s] = makeJoint();
+    J['wrist' + s] = makeJoint();
+  });
+  J.pelvisCenter = makeJoint();
+
+  BN.spine = makeBoneFixed(d.torsoLen);
+  BN.neck = makeBoneFixed(d.neckLen);
+  BN.pelvisBar = makeBoneFixed(d.hipW * 0.92 * 2);
+  BN.shoulderBar = makeBoneFixed(d.shoulderW * 2);
+  ['L', 'R'].forEach(s => {
+    BN['thigh' + s] = makeBoneFixed(d.thighLen);
+    BN['shin' + s] = makeBoneFixed(d.shinLen);
+    BN['upperArm' + s] = makeBoneFixed(d.upperArmLen);
+    BN['forearm' + s] = makeBoneFixed(d.forearmLen);
+  });
+
+  const footGeo = new THREE.BoxGeometry(ST.H * 0.045, 0.04, ST.H * 0.1);
+  const footMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5 });
+  ['L', 'R'].forEach(s => {
+    J['foot' + s] = new THREE.Mesh(footGeo, footMaterial);
+    J['foot' + s].castShadow = true;
+    stickGroup.add(J['foot' + s]);
+  });
+}
+
+// ============ BARBELL ============
+const barbellGroup = new THREE.Group();
+scene.add(barbellGroup);
+
+function buildBarbell() {
+  while (barbellGroup.children.length) barbellGroup.remove(barbellGroup.children[0]);
+
+  const barLen = 2.2, barR = 0.014;
+  const barGeo = new THREE.CylinderGeometry(barR, barR, barLen, 12);
+  barGeo.rotateZ(Math.PI / 2);
+  const barMesh = new THREE.Mesh(barGeo, barMaterial);
+  barMesh.castShadow = true;
+  barbellGroup.add(barMesh);
+
+  const plateR = 0.225;
+  const perSide = Math.max(0, (ST.wt - 20) / 2);
+  const cfgs = [];
+  let rem = perSide;
+  if (rem >= 25) { cfgs.push({ w: 25, mat: plateMats.red, r: plateR }); rem -= 25; }
+  if (rem >= 20) { cfgs.push({ w: 20, mat: plateMats.blue, r: plateR * 0.95 }); rem -= 20; }
+  while (rem >= 15) { cfgs.push({ w: 15, mat: plateMats.gray, r: plateR * 0.9 }); rem -= 15; }
+  while (rem >= 10) { cfgs.push({ w: 10, mat: plateMats.gray, r: plateR * 0.8 }); rem -= 10; }
+  while (rem >= 5) { cfgs.push({ w: 5, mat: plateMats.gray, r: plateR * 0.65 }); rem -= 5; }
+  while (rem >= 2.5) { cfgs.push({ w: 2.5, mat: plateMats.gray, r: plateR * 0.55 }); rem -= 2.5; }
+  if (!cfgs.length) cfgs.push({ w: 0, mat: plateMats.gray, r: plateR * 0.45 });
+
+  [-1, 1].forEach(side => {
+    let off = 0.67;
+    cfgs.forEach(pc => {
+      const th = 0.025 + pc.w * 0.001;
+      const g = new THREE.CylinderGeometry(pc.r, pc.r, th, 24);
+      g.rotateZ(Math.PI / 2);
+      const m = new THREE.Mesh(g, pc.mat);
+      m.position.x = side * (off + th / 2);
+      m.castShadow = true;
+      barbellGroup.add(m);
+      off += th + 0.003;
+    });
+  });
+}
+
+// ============ ANNOTATION OBJECTS ============
+
+// Spine line (green)
+const spGeo = new THREE.BufferGeometry();
+const spLine = new THREE.Line(spGeo, new THREE.LineBasicMaterial({ color: 0x43a047, transparent: true, opacity: 0.5 }));
+scene.add(spLine);
+
+// Scapula vertical projection line (blue dashed)
+const scapGeo = new THREE.BufferGeometry();
+const scapLine = new THREE.Line(scapGeo, scapLineMatObj);
+scene.add(scapLine);
+
+// Gravity / midfoot vertical line (orange)
+const gravGeo = new THREE.BufferGeometry();
+const gravLine = new THREE.Line(gravGeo, gravLineMatObj);
+scene.add(gravLine);
+
+// Gaze direction line (purple)
+const gazeGeo = new THREE.BufferGeometry();
+const gazeLine = new THREE.Line(gazeGeo, gazeLineMat);
+scene.add(gazeLine);
+
+// Shin-bar contact indicator (small red sphere)
+const shinContactL = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), shinContactMat);
+const shinContactR = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), shinContactMat);
+scene.add(shinContactL, shinContactR);
+
+// Foot pressure triangles
+const triGeoL = new THREE.BufferGeometry();
+const triGeoR = new THREE.BufferGeometry();
+const triMeshL = new THREE.Mesh(triGeoL, footTriMat);
+const triMeshR = new THREE.Mesh(triGeoR, footTriMat);
+scene.add(triMeshL, triMeshR);
+
+// ============ BIOMECHANICS SOLVER ============
+/*
+  PHASE MAP (expanded):
+    t = 0.00       : Approach/Setup - bar over midfoot, shins 2-3cm from bar
+    t = 0.00-0.03  : "Pull the slack" - 10-20% tension, no bar movement
+    t = 0.03-0.05  : Break-off - bar leaves ground, tibie contact barra
+    t = 0.05-0.30  : First Pull - floor to knees (quad dominant)
+    t = 0.30-0.70  : Second Pull - knees to lockout (hip extension)
+    t = 0.70-0.95  : Lockout - final hip extension, glute squeeze
+    t = 0.95-1.00  : Complete lockout position
+
+  KEY CONSTRAINTS from coaching input:
+    - Bar starts over midfoot (Z ~ 0)
+    - Shins advance to touch bar during set (not push bar forward)
+    - Scapulae (rear delts) vertically over bar, shoulders slightly AHEAD
+    - Arms angle ~5-10 degrees (not perfectly vertical)
+    - Head: neutral cervical spine, gaze 2-3m ahead on floor
+    - Spine neutral throughout
+    - Bar slides along shins then thighs
+    - No hyperextension at lockout
+*/
+
+function getDimensions() {
+  const H = ST.H;
+  const f = ST.femur;
+  return {
+    H,
+    footH: 0.04,
+    footLen: H * 0.15,       // foot length for midfoot calc
+    shinLen: H * 0.245 * (1 - (f - 0.5) * 0.5),
+    thighLen: H * 0.245 * (1 + (f - 0.5) * 0.5),
+    pelvisH: H * 0.04,
+    torsoLen: H * 0.32,
+    neckLen: H * 0.04,
+    headR: H * HEAD_R_FACTOR,
+    shoulderW: H * 0.11,
+    upperArmLen: H * 0.186,
+    forearmLen: H * 0.253,  // forearm + hand to bar grip center
+    hipW: ST.stance === 'sumo' ? H * 0.14 : H * 0.088,
+    // Scapula offset: scapulae are ~5cm behind the shoulder joint
+    scapOffset: H * 0.03,
+  };
+}
+
+function solve(t) {
+  const d = getDimensions();
+  const H = d.H;
+  const isConv = ST.stance === 'conv';
+  t = clamp(t, 0, 1);
+
+  // ======= MOVEMENT PHASE ANGLES =======
+
+  // During "pull the slack" (t=0 to 0.03), no position change, just tension
+  const moveT = clamp((t - 0.03) / 0.97, 0, 1); // effective movement parameter
+
+  // ===== KNEE FLEXION =====
+  // Bottom: ~55° conv / ~70° sumo (moderate — not a squat).
+  // Knees extend rapidly during first pull, nearly straight by 55%.
+  const kneeMax = isConv ? 55 : 70;
+  const kneeFlex = kneeMax * (1 - smooth(moveT, 0, 0.55));
+
+  // ===== HIP FLEXION (torso lean from vertical) =====
+  // KEY RULE: During first pull (floor→knees), back angle stays roughly CONSTANT.
+  //   "Fianchi e spalle salgono insieme" — hips and shoulders rise together.
+  //   Only ~15% of hip extension happens during first pull.
+  //   Then during second pull + lockout, hip extends fully.
+  // Bottom: ~72° conv / ~55° sumo → 0° at lockout.
+  const hipMax = isConv ? 72 : 55;
+  // Two-phase curve: slow reduction then fast reduction
+  // Phase 1 (0→0.30): 15% of total extension (back angle ~constant)
+  // Phase 2 (0.30→1.0): remaining 85% (hip extension dominates)
+  const phase1 = 0.15 * smooth(moveT, 0, 0.35);        // 0→0.15 over first 35%
+  const phase2 = 0.85 * smooth(moveT, 0.28, 1.0);       // 0→0.85 over 28%→100%
+  const hipFlex = hipMax * (1 - phase1 - phase2);
+
+  // ===== SHIN ANGLE =====
+  // Shins as VERTICAL as possible (key deadlift rule — NOT a squat).
+  // The shins advance to touch the bar but stay nearly vertical.
+  // Conv: ~8-10°, Sumo: ~15-18°. Clears quickly as knees extend.
+  const shinMax = isConv ? 9 : 16;
+  const shinAngle = shinMax * (1 - smooth(moveT, 0, 0.40));
+
+  // Spine stays neutral throughout (constant angle relative to torso)
+  const backAngle = 12;
+
+  // ======= WORLD POSITIONS (Y=up, Z=forward toward athlete front, X=lateral) =======
+
+  // Midfoot position = Z=0 (our reference point)
+  const midFootZ = 0;
+  const ankleY = d.footH;
+  // Ankle is slightly behind midfoot
+  const ankleZ = -d.footLen * 0.15;
+
+  // Shin: ankle -> knee (tilted forward)
+  const shinRad = shinAngle * DEG;
+  const kneeZ = ankleZ + Math.sin(shinRad) * d.shinLen;
+  const kneeY = ankleY + Math.cos(shinRad) * d.shinLen;
+
+  // Thigh: knee -> hip
+  const kneeFlexRad = kneeFlex * DEG;
+  const thighTilt = kneeFlexRad - shinRad;
+  const hipZ = kneeZ - Math.sin(thighTilt) * d.thighLen;
+  const hipY = kneeY + Math.cos(thighTilt) * d.thighLen;
+
+  // Pelvis
+  const pelvisY = hipY + d.pelvisH * 0.5;
+  const pelvisZ = hipZ;
+
+  // Torso (hip -> shoulders), leaning forward
+  const hipFlexRad = hipFlex * DEG;
+  const shoulderY = hipY + d.pelvisH + Math.cos(hipFlexRad) * d.torsoLen;
+  const shoulderZ = hipZ + Math.sin(hipFlexRad) * d.torsoLen;
+
+  // ======= SCAPULA / SHOULDER POSITION =======
+  // Scapulae (rear delts) should be vertically over bar
+  // Shoulders (front of joint) are slightly AHEAD of bar (~5-10 deg arm angle)
+  // The scapula is behind the shoulder joint by scapOffset
+  const scapY = shoulderY;
+  const scapZ = shoulderZ - d.scapOffset; // scapula is behind shoulder
+
+  // ======= HEAD / GAZE =======
+  // Cervical spine neutral: head follows torso angle
+  // Not looking at mirror (hyperextension), looking 2-3m ahead on floor
+  // Chin slightly retracted (double chin)
+  const neckLean = hipFlexRad * 0.85; // neck mostly follows torso (neutral)
+  const neckTopY = shoulderY + Math.cos(neckLean) * d.neckLen;
+  const neckTopZ = shoulderZ + Math.sin(neckLean) * d.neckLen;
+
+  const headY = neckTopY + d.headR * 0.8;
+  const headZ = neckTopZ;
+
+  // Gaze direction: ~2-3m ahead on floor
+  // The gaze angle from head to floor at 2.5m distance
+  const gazeTargetZ = headZ + 2.5;
+  const gazeTargetY = 0;
+
+  // ======= GRIP WIDTH (needed for barbell and arm IK) =======
+  const gripW = isConv ? d.shoulderW * 1.05 : d.shoulderW * 0.85;
+
+  // ======= BARBELL POSITION =======
+  // Bar must be over midfoot at all times (key constraint)
+  // Bar starts on ground (plate radius = 0.225)
+  // During pull-the-slack phase, bar doesn't move
+  // Then bar slides up along shins -> thighs -> hip height
+
+  const plateR = 0.225;
+  const barStartY = plateR; // bar center height on ground
+
+  // Bar Z: always over midfoot = 0 (the bar doesn't drift forward/back)
+  const barZ = midFootZ;
+
+  // Bar Y: rises from ground to arm-hang height at lockout
+  // No movement during slack pull (t < 0.03)
+  // At lockout: arms hang straight → bar at shoulderY minus vertical arm reach
+  // Account for lateral (X) and depth (Z) offsets that reduce vertical reach
+  const armTotal = d.upperArmLen + d.forearmLen;
+  const gripDx = gripW - d.shoulderW; // lateral offset shoulder→grip
+  const gripDz = barZ - shoulderZ;     // depth offset shoulder→bar
+  const armVertical = Math.sqrt(Math.max(0.01, armTotal * armTotal - gripDx * gripDx - gripDz * gripDz));
+  const lockoutBarY = shoulderY - armVertical;
+  let barY;
+  if (t < 0.03) {
+    barY = barStartY; // pulling slack - no movement
+  } else {
+    barY = lerp(barStartY, lockoutBarY, smooth(moveT, 0, 1));
+  }
+
+  // ======= SHIN-BAR CONTACT =======
+  // At bottom: tibie avanzano fino a sfiorare la barra (contact point)
+  // The bar is at Z=0 (midfoot). The shin surface at bar height is:
+  // shin at barY height -> interpolate along shin
+  const barOnShinT = clamp((barY - ankleY) / (kneeY - ankleY), 0, 1);
+  const shinSurfaceZ = ankleZ + barOnShinT * (kneeZ - ankleZ);
+  // Contact: bar should be right at shin surface (maybe 2-3mm gap)
+  const shinBarGap = Math.abs(barZ - shinSurfaceZ);
+  const hasBarShinContact = barY < kneeY && barY > ankleY + 0.05;
+
+  // ======= ARM SOLVER =======
+  // In deadlift, arms are ALWAYS straight — they act as passive hooks/ropes.
+  // No elbow bend at any phase. Elbow is simply along shoulder→grip direction.
+  function solveArm(sx, sy, sz, gx, gy, gz) {
+    const dx = gx - sx, dy = gy - sy, dz = gz - sz;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const total = d.upperArmLen + d.forearmLen;
+
+    // Direction from shoulder to grip
+    const nx = dist > 0.0001 ? dx / dist : 0;
+    const ny = dist > 0.0001 ? dy / dist : -1;
+    const nz = dist > 0.0001 ? dz / dist : 0;
+
+    // Arms always straight: elbow at upperArmLen along the line, wrist at total
+    return {
+      elbow: {
+        x: sx + nx * d.upperArmLen,
+        y: sy + ny * d.upperArmLen,
+        z: sz + nz * d.upperArmLen
+      },
+      wrist: {
+        x: sx + nx * total,
+        y: sy + ny * total,
+        z: sz + nz * total
+      }
+    };
+  }
+
+  // ======= FOOT PRESSURE TRIANGLE =======
+  // Three points: heel, base of big toe, base of little toe
+  // Pressure should be centered on midfoot
+  const footPressureCenter = midFootZ;
+
+  // ======= "SLACK PULL" INDICATOR =======
+  const isSlackPhase = t > 0 && t < 0.03;
+  const slackTension = isSlackPhase ? smooth(t, 0, 0.03) : (t >= 0.03 ? 1 : 0);
+
+  return {
+    t, d, isConv, moveT,
+    kneeFlex, hipFlex, backAngle, shinAngle,
+    ankleY, ankleZ, kneeY, kneeZ,
+    hipY, hipZ, pelvisY, pelvisZ,
+    shoulderY, shoulderZ,
+    scapY, scapZ,
+    neckTopY, neckTopZ, headY, headZ,
+    gazeTargetY, gazeTargetZ,
+    barY, barZ, gripW,
+    hipFlexRad, thighTilt, shinRad,
+    hipW: d.hipW,
+    hasBarShinContact, shinSurfaceZ, barOnShinT,
+    isSlackPhase, slackTension,
+    footPressureCenter,
+    solveArm,
+  };
+}
+
+// ============ POSITION STICKMAN ============
+
+const _up = new THREE.Vector3(0, 1, 0);
+const _dir = new THREE.Vector3();
+const _quat = new THREE.Quaternion();
+
+function placeBone(bone, x1, y1, z1, x2, y2, z2) {
+  // Place a fixed-length bone between two joint positions.
+  // The bone geometry has its length baked in — NO scaling.
+  // We orient along p1→p2 direction and place at the midpoint.
+  _dir.set(x2 - x1, y2 - y1, z2 - z1);
+  const len = _dir.length();
+  if (len < 0.0001) { bone.visible = false; return; }
+  bone.visible = true;
+  _dir.normalize();
+  _quat.setFromUnitVectors(_up, _dir);
+  bone.quaternion.copy(_quat);
+  bone.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+  // No scale change — bone length is baked into geometry
+}
+
+function applyStick(p) {
+  if (!p) return;
+  const d = p.d;
+
+  // --- LEGS ---
+  // Hip joint is narrower than ankle (anatomically correct).
+  // We compute the hip position so thigh length is EXACT in 3D.
+  const hipNarrow = p.hipW * 0.92; // hip joint X is slightly inward
+  ['L', 'R'].forEach(s => {
+    const sign = s === 'L' ? 1 : -1;
+    const fx = sign * p.hipW;
+
+    J['foot' + s].position.set(fx, d.footH / 2, 0.02);
+    J['foot' + s].rotation.y = p.isConv ? sign * 0.08 : sign * 0.35;
+
+    const ax = fx, ay = p.ankleY, az = p.ankleZ;
+    J['ankle' + s].position.set(ax, ay, az);
+
+    const kx = fx, ky = p.kneeY, kz = p.kneeZ;
+    J['knee' + s].position.set(kx, ky, kz);
+
+    // Hip X is narrower. To keep thighLen exact, adjust Y-Z using the
+    // X offset. The solver gives us 2D (Y,Z) distance = thighLen.
+    // With an X offset dx, we need to shorten the Y-Z component:
+    // thighLen^2 = dx^2 + dyz^2 => dyz = sqrt(thighLen^2 - dx^2)
+    const hx = sign * hipNarrow;
+    const dxThigh = hx - kx; // lateral offset (negative, going inward)
+    const sagittalLen2D = Math.sqrt(
+      (p.hipY - p.kneeY) * (p.hipY - p.kneeY) +
+      (p.hipZ - p.kneeZ) * (p.hipZ - p.kneeZ)
+    );
+    // Scale the Y-Z displacement so 3D distance = thighLen
+    const dxSq = dxThigh * dxThigh;
+    const thighLenSq = d.thighLen * d.thighLen;
+    const neededYZ = Math.sqrt(Math.max(0, thighLenSq - dxSq));
+    const scaleFactor = sagittalLen2D > 0.0001 ? neededYZ / sagittalLen2D : 1;
+    const hy = ky + (p.hipY - p.kneeY) * scaleFactor;
+    const hz = kz + (p.hipZ - p.kneeZ) * scaleFactor;
+
+    J['hip' + s].position.set(hx, hy, hz);
+
+    placeBone(BN['shin' + s], ax, ay, az, kx, ky, kz);
+    placeBone(BN['thigh' + s], kx, ky, kz, hx, hy, hz);
+  });
+
+  // --- PELVIS ---
+  // Use the corrected hip positions for pelvis
+  const hipLY = J.hipL.position.y, hipLZ = J.hipL.position.z;
+  const hipRY = J.hipR.position.y, hipRZ = J.hipR.position.z;
+  const pelvisMidY = (hipLY + hipRY) / 2;
+  const pelvisMidZ = (hipLZ + hipRZ) / 2;
+  J.pelvisCenter.position.set(0, pelvisMidY + d.pelvisH * 0.5, pelvisMidZ);
+  placeBone(BN.pelvisBar,
+    -hipNarrow, hipLY, hipLZ,
+    hipNarrow, hipRY, hipRZ
+  );
+
+  // --- SPINE ---
+  // Recompute shoulder relative to corrected pelvis so spine = exact torsoLen
+  const spineBaseY = pelvisMidY + d.pelvisH;
+  const spineBaseZ = pelvisMidZ;
+  const shoulderY = spineBaseY + Math.cos(p.hipFlexRad) * d.torsoLen;
+  const shoulderZ = spineBaseZ + Math.sin(p.hipFlexRad) * d.torsoLen;
+  placeBone(BN.spine, 0, spineBaseY, spineBaseZ, 0, shoulderY, shoulderZ);
+
+  // --- SHOULDERS ---
+  placeBone(BN.shoulderBar, -d.shoulderW, shoulderY, shoulderZ, d.shoulderW, shoulderY, shoulderZ);
+  J.shoulderMid.position.set(0, shoulderY, shoulderZ);
+
+  // --- NECK ---
+  // Recompute neck relative to corrected shoulder
+  const neckLean = p.hipFlexRad * 0.85;
+  const neckTopY = shoulderY + Math.cos(neckLean) * d.neckLen;
+  const neckTopZ = shoulderZ + Math.sin(neckLean) * d.neckLen;
+  J.neck.position.set(0, neckTopY, neckTopZ);
+  placeBone(BN.neck, 0, shoulderY, shoulderZ, 0, neckTopY, neckTopZ);
+
+  // --- HEAD ---
+  const headY = neckTopY + d.headR * 0.8;
+  const headZ = neckTopZ;
+  J.head.position.set(0, headY, headZ);
+
+  // --- ARMS ---
+  let wristAvgY = 0, wristAvgZ = 0;
+  ['L', 'R'].forEach(s => {
+    const sign = s === 'L' ? 1 : -1;
+    const sx = sign * d.shoulderW, sy = shoulderY, sz = shoulderZ;
+    const gx = sign * p.gripW, gy = p.barY, gz = p.barZ;
+
+    J['shoulder' + s].position.set(sx, sy, sz);
+    const arm = p.solveArm(sx, sy, sz, gx, gy, gz);
+    J['elbow' + s].position.set(arm.elbow.x, arm.elbow.y, arm.elbow.z);
+    J['wrist' + s].position.set(arm.wrist.x, arm.wrist.y, arm.wrist.z);
+
+    placeBone(BN['upperArm' + s], sx, sy, sz, arm.elbow.x, arm.elbow.y, arm.elbow.z);
+    placeBone(BN['forearm' + s], arm.elbow.x, arm.elbow.y, arm.elbow.z, arm.wrist.x, arm.wrist.y, arm.wrist.z);
+
+    wristAvgY += arm.wrist.y;
+    wristAvgZ += arm.wrist.z;
+  });
+  wristAvgY /= 2;
+  wristAvgZ /= 2;
+
+  // --- BARBELL ---
+  // Place barbell at wrist position so it's always connected to hands
+  barbellGroup.position.set(0, wristAvgY, wristAvgZ);
+
+  // ======= ANNOTATIONS =======
+
+  // Spine line (green)
+  const spPts = new Float32Array([
+    0, pelvisMidY, pelvisMidZ,
+    0, spineBaseY, spineBaseZ,
+    0, shoulderY, shoulderZ,
+    0, neckTopY, neckTopZ,
+    0, headY, headZ,
+  ]);
+  spGeo.setAttribute('position', new THREE.BufferAttribute(spPts, 3));
+  spGeo.computeBoundingSphere();
+
+  // Scapula vertical line (blue) - shows scap alignment over bar
+  const scapZ = shoulderZ - d.scapOffset;
+  const scPts = new Float32Array([
+    0, shoulderY + 0.1, scapZ,
+    0, 0, scapZ,
+  ]);
+  scapGeo.setAttribute('position', new THREE.BufferAttribute(scPts, 3));
+  scapGeo.computeBoundingSphere();
+
+  // Gravity/midfoot vertical line (orange) - shows bar path over midfoot
+  const gPts = new Float32Array([
+    0, 0, p.barZ,
+    0, shoulderY + 0.3, p.barZ,
+  ]);
+  gravGeo.setAttribute('position', new THREE.BufferAttribute(gPts, 3));
+  gravGeo.computeBoundingSphere();
+
+  // Gaze line (purple) - from head to point 2-3m ahead on floor
+  const gazeTargetZ = headZ + 2.5;
+  const gazePts = new Float32Array([
+    0, headY, headZ,
+    0, 0, gazeTargetZ,
+  ]);
+  gazeGeo.setAttribute('position', new THREE.BufferAttribute(gazePts, 3));
+  gazeGeo.computeBoundingSphere();
+
+  // Shin-bar contact indicators (red dots)
+  if (p.hasBarShinContact) {
+    shinContactL.visible = true;
+    shinContactR.visible = true;
+    shinContactL.position.set(p.hipW, p.barY, p.barZ + 0.015);
+    shinContactR.position.set(-p.hipW, p.barY, p.barZ + 0.015);
+  } else {
+    shinContactL.visible = false;
+    shinContactR.visible = false;
+  }
+
+  // Foot pressure triangles
+  ['L', 'R'].forEach((s, i) => {
+    const sign = s === 'L' ? 1 : -1;
+    const fx = sign * p.hipW;
+    const hw = d.H * 0.022;
+    const fl = d.footLen;
+    // Triangle: heel, big toe base, little toe base
+    const verts = new Float32Array([
+      fx, 0.005, -fl * 0.35,         // heel
+      fx + sign * hw, 0.005, fl * 0.3,  // big toe
+      fx - sign * hw, 0.005, fl * 0.2,  // little toe
+    ]);
+    const geo = i === 0 ? triGeoL : triGeoR;
+    geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+  });
+}
+
+// ============ MUSCLE ACTIVATION (EMG-based) ============
+function getMuscles(t) {
+  const c = ST.stance === 'conv';
+  // Added Lats (dorsali) as key muscle per coaching notes
+  return {
+    Glutei: lerp(25, 95, smooth(t, 0.25, 0.9)),
+    Quadricipiti: lerp(c ? 80 : 85, 12, smooth(t, 0, 0.6)),
+    Hamstring: c ? lerp(55, 82, smooth(t, 0.1, 0.85)) : lerp(48, 72, smooth(t, 0.1, 0.85)),
+    'Erettori sp.': c ? lerp(88, 38, smooth(t, 0.15, 1)) : lerp(68, 32, smooth(t, 0.15, 1)),
+    Dorsali: lerp(60, 45, smooth(t, 0.1, 0.8)), // lats keep bar close
+    Trapezio: lerp(18, 78, smooth(t, 0.45, 1)),
+    'Core/Addome': lerp(80, 60, smooth(t, 0, 1)),
+    Avambracci: lerp(70, 88, smooth(t, 0, 0.5)),
+  };
+}
+
+const muscleNames = ['Glutei', 'Quadricipiti', 'Hamstring', 'Erettori sp.', 'Dorsali', 'Trapezio', 'Core/Addome', 'Avambracci'];
+document.getElementById('msc').innerHTML = muscleNames.map(n =>
+  `<div class="musc"><span class="mname">${n}</span><div class="mbar"><div class="mfill" id="mf-${n}" style="width:0%"></div></div><span class="mpct" id="mv-${n}">0%</span></div>`
+).join('');
+
+// ============ COACHING CUES (comprehensive) ============
+function getTips(t) {
+  const tips = [];
+  const isConv = ST.stance === 'conv';
+
+  if (t < 0.01) {
+    // SETUP
+    tips.push({ c: 'g', t: 'SETUP: Piedi larghezza fianchi, barra sopra la meta del piede (midfoot), a 2-3cm dalle tibie.' });
+    tips.push({ c: 'g', t: 'Afferra la barra: le tibie avanzano fino a sfiorarla SENZA spingerla avanti.' });
+    tips.push({ c: 'g', t: 'Scapole allineate verticalmente sopra la barra. Spalle leggermente AVANTI.' });
+    tips.push({ c: 'g', t: 'Depressione scapolare: scapole verso le tasche posteriori dei pantaloni (NO shrug!).' });
+    tips.push({ c: 'g', t: 'Piede: pressione distribuita sul triangolo tallone-alluce-mignolo (midfoot).' });
+    tips.push({ c: 'g', t: 'Sguardo: 2-3m avanti sul pavimento. Mento retratto (double chin), collo neutro.' });
+  } else if (t < 0.03) {
+    // PULLING THE SLACK
+    tips.push({ c: 'w', t: 'PULL THE SLACK: Applica 10-20% di tensione verso l\'alto. NON strappare!' });
+    tips.push({ c: 'g', t: 'Devi sentire il "click" metallico del bilanciere contro la parte alta dei fori dei dischi.' });
+    tips.push({ c: 'g', t: 'Il peso deve essere gia sulle mani e sulle gambe prima di staccare.' });
+    tips.push({ c: 'g', t: 'ATTIVA I DORSALI: immagina di schiacciare arance sotto le ascelle.' });
+    tips.push({ c: 'g', t: 'Inspira profondamente: manovra di Valsalva, core al massimo.' });
+    tips.push({ c: 'w', t: 'Se strappi, i fianchi salgono troppo velocemente e perdi la schiena!' });
+  } else if (t < 0.30) {
+    // FIRST PULL
+    tips.push({ c: 'g', t: 'FIRST PULL: Spingi il pavimento via con le gambe!' });
+    tips.push({ c: 'w', t: 'Angolo schiena COSTANTE: fianchi e spalle devono salire insieme!' });
+    tips.push({ c: 'e', t: 'Se il bacino sale prima del bilanciere = "Hips shooting up" - dorsali non attivati!' });
+    tips.push({ c: 'g', t: 'La barra scivola lungo le tibie (contatto o distanza millimetrica).' });
+    tips.push({ c: 'g', t: 'Dorsali attivi: il bilanciere resta attaccato al corpo ("spezza la sbarra intorno alle tibie").' });
+    tips.push({ c: 'g', t: isConv ? 'Ginocchia indietro per far passare la barra.' : 'Ginocchia fuori, in linea con i piedi.' });
+    tips.push({ c: 'g', t: 'Cue piedi: "allarga il pavimento" per attivare meglio i glutei.' });
+  } else if (t < 0.70) {
+    // SECOND PULL
+    tips.push({ c: 'g', t: 'SECOND PULL: Barra oltre le ginocchia - ora domina l\'estensione d\'anca.' });
+    tips.push({ c: 'g', t: 'Spingi i fianchi AVANTI con forza - estendi l\'anca!' });
+    tips.push({ c: 'w', t: 'Barra a contatto con le cosce! I dorsali la tengono vicina al baricentro.' });
+    tips.push({ c: 'g', t: 'Scapole sempre depresse (verso il basso), non scrollare le spalle.' });
+    tips.push({ c: 'g', t: 'Spalle sopra o leggermente davanti alla barra.' });
+    tips.push({ c: 'g', t: 'Pressione sul piede rimane al centro (midfoot), non spostare sui talloni.' });
+  } else {
+    // LOCKOUT
+    tips.push({ c: 'g', t: 'LOCKOUT: Completa l\'estensione dell\'anca - "stringi i glutei".' });
+    tips.push({ c: 'g', t: 'Glutei contratti, ginocchia estese, postura eretta.' });
+    tips.push({ c: 'e', t: 'NON iperestendere! Non spingere la pancia in avanti inarcando la schiena.' });
+    tips.push({ c: 'g', t: 'Semplicemente "blocca" l\'anca in posizione verticale con i glutei.' });
+    tips.push({ c: 'g', t: 'Spalle naturalmente indietro, SENZA scrollata attiva.' });
+    if (t > 0.95) {
+      tips.push({ c: 'g', t: 'Discesa controllata: fianchi INDIETRO prima, poi piega le ginocchia.' });
+    }
+  }
+
+  if (ST.wt > 180) tips.push({ c: 'w', t: `Carico pesante (${ST.wt}kg): usa cintura, chalk e eventualmente straps.` });
+
+  return tips;
+}
+
+function getPhase(t) {
+  if (t < 0.01) return { n: 'Setup', d: 'Posizionamento iniziale - barra su midfoot' };
+  if (t < 0.03) return { n: 'Pull the Slack', d: 'Trazione del gioco - tensione 10-20%' };
+  if (t < 0.05) return { n: 'Break-off', d: 'Stacco da terra - dorsali attivi' };
+  if (t < 0.30) return { n: 'First Pull', d: 'Da terra a ginocchia - quad dominanti' };
+  if (t < 0.70) return { n: 'Second Pull', d: 'Oltre ginocchia - estensione anca' };
+  if (t < 0.95) return { n: 'Lockout', d: 'Estensione completa - glutei al massimo' };
+  return { n: 'Completo!', d: 'Lift valido - posizione eretta' };
+}
+
+// ============ UI UPDATE ============
+function updateUI(t) {
+  const p = solve(t);
+  if (!p) return;
+
+  const ph = getPhase(t);
+  document.getElementById('pn').textContent = ph.n;
+  document.getElementById('pd').textContent = ph.d;
+
+  const setA = (id, v, el, w, b) => {
+    document.getElementById(id).textContent = v.toFixed(0);
+    document.getElementById(el).className = 'ang' + (v > b ? ' bad' : v > w ? ' warn' : '');
+  };
+  setA('ah', p.hipFlex, 'Ah', 70, 82);
+  setA('ak', p.kneeFlex, 'Ak', 85, 95);
+  setA('ab', p.backAngle, 'Ab', 20, 30);
+  setA('as', p.shinAngle, 'As', 22, 32);
+
+  const m = getMuscles(t);
+  muscleNames.forEach(n => {
+    const v = m[n];
+    document.getElementById('mf-' + n).style.width = v + '%';
+    document.getElementById('mv-' + n).textContent = v.toFixed(0) + '%';
+  });
+
+  const tips = getTips(t);
+  document.getElementById('tips').innerHTML = tips.map(x => {
+    const cls = x.c === 'w' ? ' w' : x.c === 'e' ? ' e' : '';
+    return `<div class="tip${cls}">${x.t}</div>`;
+  }).join('');
+
+  document.getElementById('pf').style.width = (t * 100) + '%';
+  document.getElementById('pl').textContent =
+    t < 0.03 && t > 0 ? `Pulling the slack... ${(p.slackTension * 100).toFixed(0)}% tensione` :
+    `${(t * 100).toFixed(0)}% del movimento`;
+  document.getElementById('dw').textContent = ST.wt;
+}
+
+// ============ CAMERA VIEWS ============
+let camTarget = null, lookTarget = null;
+
+document.querySelectorAll('#viewbtns .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const v = btn.dataset.v;
+    const h = ST.H;
+    switch (v) {
+      case 'side': camTarget = new THREE.Vector3(3, h * 0.55, 0); lookTarget = new THREE.Vector3(0, h * 0.5, 0); break;
+      case 'front': camTarget = new THREE.Vector3(0, h * 0.55, 3); lookTarget = new THREE.Vector3(0, h * 0.5, 0); break;
+      case 'back': camTarget = new THREE.Vector3(0, h * 0.55, -3); lookTarget = new THREE.Vector3(0, h * 0.5, 0); break;
+      case 'free': camTarget = null; lookTarget = null; break;
+    }
+  });
+});
+
+// ============ CONTROLS ============
+document.getElementById('sw').oninput = e => { ST.wt = +e.target.value; document.getElementById('vw').textContent = ST.wt; buildBarbell(); };
+document.getElementById('sh').oninput = e => { ST.H = +e.target.value / 100; document.getElementById('vh').textContent = e.target.value; buildStick(); };
+document.getElementById('sf').oninput = e => { ST.femur = +e.target.value / 100; document.getElementById('vf').textContent = e.target.value; buildStick(); };
+document.getElementById('ss').oninput = e => { ST.spd = +e.target.value; document.getElementById('vs').textContent = ST.spd.toFixed(1) + 'x'; };
+document.getElementById('sp').oninput = e => { if (!ST.play) { ST.t = +e.target.value / 100; document.getElementById('vp').textContent = e.target.value + '%'; } };
+
+document.getElementById('bc').onclick = () => {
+  ST.stance = 'conv';
+  document.getElementById('bc').classList.add('on');
+  document.getElementById('bs').classList.remove('on');
+  buildStick();
+};
+document.getElementById('bs').onclick = () => {
+  ST.stance = 'sumo';
+  document.getElementById('bs').classList.add('on');
+  document.getElementById('bc').classList.remove('on');
+  buildStick();
+};
+document.getElementById('bplay').onclick = () => {
+  ST.play = !ST.play;
+  document.getElementById('bplay').textContent = ST.play ? 'Pausa' : 'Play';
+  document.getElementById('bplay').classList.toggle('on', ST.play);
+  if (ST.play) ST.dir = 1;
+};
+document.getElementById('breset').onclick = () => {
+  ST.t = 0; ST.play = false; ST.dir = 1;
+  document.getElementById('bplay').textContent = 'Play';
+  document.getElementById('bplay').classList.remove('on');
+  document.getElementById('sp').value = 0;
+  document.getElementById('vp').textContent = '0%';
+};
+
+// ============ INIT & LOOP ============
+buildStick();
+buildBarbell();
+
+const clock = new THREE.Clock();
+let uiTimer = 0;
+
+(function loop() {
+  requestAnimationFrame(loop);
+  const dt = clock.getDelta();
+
+  if (ST.play) {
+    ST.t += ST.dir * dt * ST.spd * 0.35;
+    if (ST.t >= 1) { ST.t = 1; ST.dir = -1; }
+    if (ST.t <= 0) { ST.t = 0; ST.dir = 1; }
+    document.getElementById('sp').value = ST.t * 100;
+    document.getElementById('vp').textContent = (ST.t * 100).toFixed(0) + '%';
+  }
+
+  const pose = solve(ST.t);
+  applyStick(pose);
+
+  uiTimer += dt;
+  if (uiTimer > 0.06) {
+    updateUI(ST.t);
+    uiTimer = 0;
+  }
+
+  if (camTarget) {
+    camera.position.lerp(camTarget, 0.05);
+    orbitCtrl.target.lerp(lookTarget, 0.05);
+  }
+
+  orbitCtrl.update();
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
